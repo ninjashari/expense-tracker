@@ -1,4 +1,4 @@
-import mongoose, { Schema } from 'mongoose';
+import mongoose, { Schema, model, models, Types } from 'mongoose';
 import { Account, DEFAULT_CURRENCY } from '../types';
 
 const AccountSchema = new Schema<Account>(
@@ -11,11 +11,16 @@ const AccountSchema = new Schema<Account>(
     type: {
       type: String,
       required: [true, 'Please provide an account type'],
-      enum: ['savings', 'checking', 'credit', 'demat', 'cash', 'investment', 'loan', 'other'],
+      enum: ['savings', 'checking', 'credit', 'cash', 'investment', 'loan', 'demat', 'other'],
     },
-    balance: {
+    initialBalance: {
       type: Number,
-      required: [true, 'Please provide an account balance'],
+      required: true,
+      default: 0,
+    },
+    currentBalance: {
+      type: Number,
+      required: true,
       default: 0,
     },
     currency: {
@@ -32,12 +37,12 @@ const AccountSchema = new Schema<Account>(
       maxlength: [1000, 'Description cannot be more than 1000 characters'],
     },
     startDate: {
-      type: Date,
+      type: String,
       required: [true, 'Please provide a start date'],
-      default: Date.now,
+      default: () => new Date().toISOString().split('T')[0],
     },
     closedDate: {
-      type: Date,
+      type: String,
     },
     isActive: {
       type: Boolean,
@@ -58,4 +63,44 @@ const AccountSchema = new Schema<Account>(
   }
 );
 
-export default mongoose.models.Account || mongoose.model<Account>('Account', AccountSchema); 
+// Virtual field to calculate current balance based on transactions
+AccountSchema.virtual('calculatedBalance').get(async function() {
+  const Transaction = models.Transaction;
+  if (!Transaction) return this.initialBalance;
+
+  const transactions = await Transaction.aggregate([
+    {
+      $match: {
+        accountId: this._id,
+        status: 'completed'
+      }
+    },
+    {
+      $group: {
+        _id: null,
+        total: {
+          $sum: {
+            $cond: [
+              { $eq: ['$type', 'expense'] },
+              { $multiply: ['$amount', -1] },
+              '$amount'
+            ]
+          }
+        }
+      }
+    }
+  ]);
+
+  const transactionTotal = transactions.length > 0 ? transactions[0].total : 0;
+  return this.initialBalance + transactionTotal;
+});
+
+// Pre-save middleware to ensure currentBalance matches initialBalance for new accounts
+AccountSchema.pre('save', function(next) {
+  if (this.isNew) {
+    this.currentBalance = this.initialBalance;
+  }
+  next();
+});
+
+export default models.Account || model<Account>('Account', AccountSchema); 

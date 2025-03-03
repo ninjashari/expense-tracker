@@ -1,31 +1,49 @@
-import { Metadata } from 'next';
-import { requireAuth } from '@/lib/session';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import dbConnect from '@/lib/db/connection';
 import { Account } from '@/lib/models';
-import AccountsList from '@/components/accounts/AccountsList';
+import AccountsTable from '@/components/accounts/AccountsTable';
+import AddAccountButton from '@/components/accounts/AddAccountButton';
 
-export const metadata: Metadata = {
+export const metadata = {
   title: 'Accounts | Finance Tracker',
-  description: 'Manage your financial accounts',
+  description: 'Manage your accounts',
 };
 
 export default async function AccountsPage() {
-  const user = await requireAuth();
+  const session = await getServerSession(authOptions);
   await dbConnect();
-  
-  // Get accounts
-  const accounts = await Account.find({ userId: user.id }).sort({ name: 1 });
-  
+
+  const accounts = await Account.find({ userId: session?.user?.id })
+    .sort({ name: 1 })
+    .lean();
+
+  // Transform MongoDB documents to the expected format
+  const formattedAccounts = accounts.map(account => {
+    const { _id, name, type, balance, currency, isActive, startDate, closedDate, description, creditLimit, notes } = account as any;
+    return {
+      _id: _id.toString(),
+      name,
+      type,
+      balance,
+      currency,
+      isActive,
+      startDate,
+      closedDate,
+      description,
+      creditLimit,
+      notes,
+    };
+  });
+
   return (
-    <AccountsList
-      accounts={accounts.map(account => ({
-        _id: account._id.toString(),
-        name: account.name,
-        type: account.type,
-        balance: account.balance,
-        currency: account.currency,
-        description: account.description,
-      }))}
-    />
+    <div>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold text-gray-900">Accounts</h1>
+        <AddAccountButton />
+      </div>
+      
+      <AccountsTable accounts={formattedAccounts} />
+    </div>
   );
 } 

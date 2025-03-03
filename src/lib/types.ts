@@ -37,17 +37,21 @@ export interface User extends BaseDocument {
 
 // Account model
 export interface Account extends BaseDocument {
+  _id: string;
+  userId: string;
   name: string;
   type: string;
-  balance: number;
-  currency: string; // Currency for this account
-  creditLimit?: number;
+  initialBalance: number;
+  currentBalance: number;
+  currency: string;
   description?: string;
-  startDate: Date;
-  closedDate?: Date;
+  creditLimit?: number;
+  startDate: string;
+  closedDate?: string;
   isActive: boolean;
   notes?: string;
-  userId: Types.ObjectId;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 // Category model

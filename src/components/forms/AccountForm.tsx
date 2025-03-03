@@ -9,7 +9,7 @@ import { format } from 'date-fns';
 interface AccountFormData {
   name: string;
   type: string;
-  balance: number;
+  initialBalance: number;
   currency: string;
   description?: string;
   creditLimit?: number;
@@ -26,12 +26,14 @@ interface AccountFormProps {
 }
 
 const accountTypes = [
-  { id: 'SAVINGS', name: 'Savings' },
-  { id: 'CHECKING', name: 'Checking' },
-  { id: 'CREDIT_CARD', name: 'Credit Card' },
-  { id: 'CASH', name: 'Cash' },
-  { id: 'INVESTMENT', name: 'Investment' },
-  { id: 'LOAN', name: 'Loan' },
+  { id: 'savings', name: 'Savings' },
+  { id: 'checking', name: 'Checking' },
+  { id: 'credit', name: 'Credit Card' },
+  { id: 'cash', name: 'Cash' },
+  { id: 'investment', name: 'Investment' },
+  { id: 'loan', name: 'Loan' },
+  { id: 'demat', name: 'Demat' },
+  { id: 'other', name: 'Other' },
 ];
 
 const currencies = [
@@ -55,10 +57,14 @@ export default function AccountForm({ accountId, initialData, onSuccess }: Accou
     formState: { errors },
     control,
   } = useForm<AccountFormData>({
-    defaultValues: initialData || {
+    defaultValues: initialData ? {
+      ...initialData,
+      startDate: initialData.startDate ? format(new Date(initialData.startDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
+      closedDate: initialData.closedDate && initialData.closedDate !== '' ? format(new Date(initialData.closedDate), 'yyyy-MM-dd') : undefined,
+    } : {
       name: '',
-      type: 'SAVINGS',
-      balance: 0,
+      type: 'savings',
+      initialBalance: 0,
       currency: 'INR',
       description: '',
       creditLimit: 0,
@@ -169,13 +175,13 @@ export default function AccountForm({ accountId, initialData, onSuccess }: Accou
       </div>
       
       <div>
-        <label htmlFor="balance" className="block text-sm font-medium text-gray-700">
+        <label htmlFor="initialBalance" className="block text-sm font-medium text-gray-700">
           Initial Balance
         </label>
         <div className="mt-1">
           <input
             type="number"
-            id="balance"
+            id="initialBalance"
             step="0.01"
             onKeyDown={(e) => {
               // Allow only numbers, backspace, delete, tab, enter, decimal point, and arrow keys
@@ -190,14 +196,14 @@ export default function AccountForm({ accountId, initialData, onSuccess }: Accou
                 e.preventDefault();
               }
             }}
-            {...register('balance', {
-              required: 'Balance is required',
+            {...register('initialBalance', {
+              required: 'Initial balance is required',
               valueAsNumber: true,
             })}
             className={inputClassName}
           />
-          {errors.balance && (
-            <p className="mt-1 text-sm text-red-600">{errors.balance.message}</p>
+          {errors.initialBalance && (
+            <p className="mt-1 text-sm text-red-600">{errors.initialBalance.message}</p>
           )}
         </div>
       </div>
@@ -224,7 +230,7 @@ export default function AccountForm({ accountId, initialData, onSuccess }: Accou
         </div>
       </div>
 
-      {(accountType === 'CREDIT_CARD' || accountType === 'LOAN') && (
+      {(accountType === 'credit' || accountType === 'loan') && (
         <div>
           <label htmlFor="creditLimit" className="block text-sm font-medium text-gray-700">
             Credit Limit
@@ -286,6 +292,7 @@ export default function AccountForm({ accountId, initialData, onSuccess }: Accou
             <input
               type="date"
               id="closedDate"
+              defaultValue={format(new Date(), 'yyyy-MM-dd')}
               {...register('closedDate')}
               className={inputClassName}
             />
@@ -324,22 +331,21 @@ export default function AccountForm({ accountId, initialData, onSuccess }: Accou
         </div>
       </div>
       
-      <div className="flex justify-end gap-4">
+      <div className="mt-6 flex justify-center gap-3">
         {accountId && (
           <button
             type="button"
             onClick={handleDelete}
             disabled={isSubmitting}
-            className="h-10 inline-flex justify-center rounded-md border border-transparent bg-red-600 px-4 text-sm font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+            className="inline-flex justify-center rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:opacity-50"
           >
-            Delete
+            Delete Account
           </button>
         )}
-        
         <button
           type="submit"
           disabled={isSubmitting}
-          className="h-10 w-full flex items-center justify-center rounded-md border border-transparent bg-violet-600 px-4 text-sm font-medium text-white shadow-sm hover:bg-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2"
+          className="inline-flex justify-center rounded-md bg-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-violet-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600 disabled:opacity-50"
         >
           {isSubmitting ? 'Saving...' : accountId ? 'Update Account' : 'Create Account'}
         </button>

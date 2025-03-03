@@ -22,8 +22,8 @@ export default async function TransactionsPage({
   const defaultCurrency = userData?.defaultCurrency || 'INR';
   
   // Parse query parameters
-  const accountId = typeof searchParams.accountId === 'string' ? searchParams.accountId : undefined;
-  const page = typeof searchParams.page === 'string' ? parseInt(searchParams.page) : 1;
+  const accountId = searchParams?.accountId?.toString();
+  const page = searchParams?.page ? parseInt(searchParams.page.toString()) : 1;
   const limit = 20;
   const skip = (page - 1) * limit;
   

@@ -3,40 +3,45 @@ import { z } from 'zod';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import dbConnect from '@/lib/db/connection';
-import { Account, User } from '@/lib/models';
-import { successResponse, errorResponse, handleApiError } from '@/lib/api-utils';
+import { Account } from '@/lib/models';
 import { DEFAULT_CURRENCY } from '@/lib/types';
 
 // Validation schema for creating/updating accounts
 const accountSchema = z.object({
   name: z.string().min(1, 'Account name is required').max(60),
-  type: z.enum(['savings', 'checking', 'credit', 'demat', 'cash', 'investment', 'loan', 'other']),
-  balance: z.number(),
+  type: z.enum(['savings', 'checking', 'credit', 'cash', 'investment', 'loan', 'demat', 'other']),
+  initialBalance: z.number().default(0),
   currency: z.string().min(1, 'Currency is required'),
   creditLimit: z.number().optional(),
   description: z.string().max(1000).optional(),
-  startDate: z.date().or(z.string().transform(str => new Date(str))),
-  closedDate: z.date().or(z.string().transform(str => new Date(str))).optional(),
+  startDate: z.string(),
+  closedDate: z.string().optional(),
   isActive: z.boolean().default(true),
   notes: z.string().max(500).optional(),
 });
 
 // GET all accounts for the current user
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions);
     
     if (!session?.user?.id) {
-      return errorResponse('Unauthorized', 401);
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
     await dbConnect();
     
-    const accounts = await Account.find({ userId: session.user.id });
+    const accounts = await Account.find({ userId: session.user.id })
+      .sort({ name: 1 })
+      .lean();
     
-    return successResponse({ accounts });
-  } catch (error) {
-    return handleApiError(error);
+    return NextResponse.json(accounts);
+  } catch (error: any) {
+    console.error('Error fetching accounts:', error);
+    return NextResponse.json(
+      { error: error.message || 'Failed to fetch accounts' },
+      { status: 500 }
+    );
   }
 }
 
@@ -45,26 +50,27 @@ export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
     
-    if (!session?.user) {
-      return new NextResponse('Unauthorized', { status: 401 });
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    
-    const body = await request.json();
     
     await dbConnect();
     
+    const data = await request.json();
+    const validatedData = accountSchema.parse(data);
+    
     const account = await Account.create({
+      ...validatedData,
       userId: session.user.id,
-      name: body.name,
-      type: body.type,
-      balance: body.balance,
-      currency: body.currency,
-      description: body.description,
+      currentBalance: validatedData.initialBalance, // Set initial currentBalance equal to initialBalance
     });
     
     return NextResponse.json(account);
-  } catch (error) {
-    console.error('[ACCOUNTS_POST]', error);
-    return new NextResponse('Internal error', { status: 500 });
+  } catch (error: any) {
+    console.error('Error creating account:', error);
+    return NextResponse.json(
+      { error: error.message || 'Failed to create account' },
+      { status: 500 }
+    );
   }
 } 
