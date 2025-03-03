@@ -3,14 +3,16 @@ import { z } from 'zod';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import dbConnect from '@/lib/db/connection';
-import { Account } from '@/lib/models';
+import { Account, User } from '@/lib/models';
 import { successResponse, errorResponse, handleApiError } from '@/lib/api-utils';
+import { DEFAULT_CURRENCY } from '@/lib/types';
 
 // Validation schema for creating/updating accounts
 const accountSchema = z.object({
   name: z.string().min(1, 'Account name is required').max(60),
   type: z.enum(['savings', 'checking', 'credit', 'demat', 'cash', 'investment', 'loan', 'other']),
   balance: z.number(),
+  currency: z.string().min(1, 'Currency is required'),
   creditLimit: z.number().optional(),
   description: z.string().max(1000).optional(),
   startDate: z.date().or(z.string().transform(str => new Date(str))),
@@ -53,6 +55,12 @@ export async function POST(request: NextRequest) {
     
     // Validate request body
     const validatedData = accountSchema.parse(body);
+    
+    // If currency is not provided, use user's default currency
+    if (!validatedData.currency) {
+      const user = await User.findById(session.user.id);
+      validatedData.currency = user?.defaultCurrency || DEFAULT_CURRENCY;
+    }
     
     // Create new account
     const newAccount = await Account.create({

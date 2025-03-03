@@ -1,5 +1,5 @@
 import mongoose, { Schema } from 'mongoose';
-import { Account } from '../types';
+import { Account, DEFAULT_CURRENCY } from '../types';
 
 const AccountSchema = new Schema<Account>(
   {
@@ -17,6 +17,11 @@ const AccountSchema = new Schema<Account>(
       type: Number,
       required: [true, 'Please provide an account balance'],
       default: 0,
+    },
+    currency: {
+      type: String,
+      required: [true, 'Please provide a currency'],
+      default: DEFAULT_CURRENCY,
     },
     creditLimit: {
       type: Number,

@@ -4,6 +4,7 @@ import { z } from 'zod';
 import dbConnect from '@/lib/db/connection';
 import { User } from '@/lib/models';
 import { successResponse, errorResponse, handleApiError } from '@/lib/api-utils';
+import { DEFAULT_CURRENCY } from '@/lib/types';
 
 // Validation schema for user registration
 const registerSchema = z.object({
@@ -12,6 +13,7 @@ const registerSchema = z.object({
   username: z.string().min(3, 'Username must be at least 3 characters').max(20),
   email: z.string().email('Invalid email address'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
+  defaultCurrency: z.string().default(DEFAULT_CURRENCY),
 });
 
 export async function POST(request: NextRequest) {
@@ -42,6 +44,7 @@ export async function POST(request: NextRequest) {
     const newUser = await User.create({
       ...validatedData,
       password: hashedPassword,
+      defaultCurrency: validatedData.defaultCurrency || DEFAULT_CURRENCY,
     });
     
     // Remove password from response

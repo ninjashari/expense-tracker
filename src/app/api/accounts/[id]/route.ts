@@ -11,6 +11,7 @@ const updateAccountSchema = z.object({
   name: z.string().min(1, 'Account name is required').max(60).optional(),
   type: z.enum(['savings', 'checking', 'credit', 'demat', 'cash', 'investment', 'loan', 'other']).optional(),
   balance: z.number().optional(),
+  currency: z.string().min(1, 'Currency is required').optional(),
   creditLimit: z.number().optional(),
   description: z.string().max(1000).optional(),
   startDate: z.date().or(z.string().transform(str => new Date(str))).optional(),

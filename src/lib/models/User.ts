@@ -1,5 +1,5 @@
 import mongoose, { Schema } from 'mongoose';
-import { User } from '../types';
+import { User, DEFAULT_CURRENCY } from '../types';
 
 const UserSchema = new Schema<User>(
   {
@@ -39,6 +39,11 @@ const UserSchema = new Schema<User>(
     },
     image: {
       type: String,
+    },
+    defaultCurrency: {
+      type: String,
+      default: DEFAULT_CURRENCY,
+      required: [true, 'Please provide a default currency'],
     },
   },
   {

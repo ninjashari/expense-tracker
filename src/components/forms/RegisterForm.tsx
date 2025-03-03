@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { CURRENCIES, DEFAULT_CURRENCY } from '@/lib/types';
 
 // Validation schema
 const registerSchema = z.object({
@@ -15,6 +16,7 @@ const registerSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
   confirmPassword: z.string().min(1, 'Please confirm your password'),
+  defaultCurrency: z.string().min(1, 'Please select a currency'),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ['confirmPassword'],
@@ -40,6 +42,7 @@ export default function RegisterForm() {
       email: '',
       password: '',
       confirmPassword: '',
+      defaultCurrency: DEFAULT_CURRENCY,
     },
   });
   
@@ -60,6 +63,7 @@ export default function RegisterForm() {
           username: data.username,
           email: data.email,
           password: data.password,
+          defaultCurrency: data.defaultCurrency,
         }),
       });
       
@@ -196,6 +200,26 @@ export default function RegisterForm() {
           />
           {errors.confirmPassword && (
             <p className="mt-1 text-sm text-red-600">{errors.confirmPassword.message}</p>
+          )}
+        </div>
+        
+        <div>
+          <label htmlFor="defaultCurrency" className="block text-sm font-medium text-gray-700">
+            Default Currency
+          </label>
+          <select
+            id="defaultCurrency"
+            {...register('defaultCurrency')}
+            className="mt-1 block w-full rounded-md border-0 py-2 px-3 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm"
+          >
+            {CURRENCIES.map((currency) => (
+              <option key={currency.code} value={currency.code}>
+                {currency.name}
+              </option>
+            ))}
+          </select>
+          {errors.defaultCurrency && (
+            <p className="mt-1 text-sm text-red-600">{errors.defaultCurrency.message}</p>
           )}
         </div>
       </div>

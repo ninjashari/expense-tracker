@@ -1,17 +1,20 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
+import { useSession } from 'next-auth/react';
+import { CURRENCIES, DEFAULT_CURRENCY } from '@/lib/types';
 
 // Validation schema
 const accountSchema = z.object({
   name: z.string().min(1, 'Account name is required').max(60),
   type: z.enum(['savings', 'checking', 'credit', 'demat', 'cash', 'investment', 'loan', 'other']),
   balance: z.number().or(z.string().transform(val => Number(val))),
+  currency: z.string().min(1, 'Currency is required'),
   creditLimit: z.number().or(z.string().transform(val => Number(val))).optional(),
   description: z.string().max(1000).optional(),
   startDate: z.string(),
@@ -26,8 +29,9 @@ interface AccountFormProps {
   account?: {
     _id: string;
     name: string;
-    type: string;
+    type: 'savings' | 'checking' | 'credit' | 'demat' | 'cash' | 'investment' | 'loan' | 'other';
     balance: number;
+    currency?: string;
     creditLimit?: number;
     description?: string;
     startDate: string;
@@ -41,20 +45,45 @@ interface AccountFormProps {
 export default function AccountForm({ account, onSuccess }: AccountFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [userDefaultCurrency, setUserDefaultCurrency] = useState(DEFAULT_CURRENCY);
   const router = useRouter();
+  const { data: session } = useSession();
   
   const isEditMode = !!account;
+  
+  // Fetch user's default currency
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (session?.user) {
+        try {
+          const response = await fetch('/api/auth/me');
+          if (response.ok) {
+            const userData = await response.json();
+            if (userData.defaultCurrency) {
+              setUserDefaultCurrency(userData.defaultCurrency);
+            }
+          }
+        } catch (error) {
+          console.error('Failed to fetch user data:', error);
+        }
+      }
+    };
+    
+    fetchUserData();
+  }, [session]);
   
   const {
     register,
     handleSubmit,
     formState: { errors },
     watch,
+    setValue,
   } = useForm<AccountFormValues>({
     resolver: zodResolver(accountSchema),
     defaultValues: account
       ? {
           ...account,
+          currency: account.currency || userDefaultCurrency,
           startDate: format(new Date(account.startDate), 'yyyy-MM-dd'),
           closedDate: account.closedDate ? format(new Date(account.closedDate), 'yyyy-MM-dd') : undefined,
         }
@@ -62,6 +91,7 @@ export default function AccountForm({ account, onSuccess }: AccountFormProps) {
           name: '',
           type: 'savings',
           balance: 0,
+          currency: userDefaultCurrency,
           creditLimit: 0,
           description: '',
           startDate: format(new Date(), 'yyyy-MM-dd'),
@@ -69,6 +99,13 @@ export default function AccountForm({ account, onSuccess }: AccountFormProps) {
           notes: '',
         },
   });
+  
+  // Update form when userDefaultCurrency changes
+  useEffect(() => {
+    if (!isEditMode) {
+      setValue('currency', userDefaultCurrency);
+    }
+  }, [userDefaultCurrency, isEditMode, setValue]);
   
   const accountType = watch('type');
   const isActive = watch('isActive');
@@ -172,6 +209,26 @@ export default function AccountForm({ account, onSuccess }: AccountFormProps) {
           />
           {errors.balance && (
             <p className="mt-1 text-sm text-red-600">{errors.balance.message}</p>
+          )}
+        </div>
+        
+        <div>
+          <label htmlFor="currency" className="block text-sm font-medium text-gray-700">
+            Currency *
+          </label>
+          <select
+            id="currency"
+            {...register('currency')}
+            className="mt-1 block w-full rounded-md border-0 py-2 px-3 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm"
+          >
+            {CURRENCIES.map((currency) => (
+              <option key={currency.code} value={currency.code}>
+                {currency.name}
+              </option>
+            ))}
+          </select>
+          {errors.currency && (
+            <p className="mt-1 text-sm text-red-600">{errors.currency.message}</p>
           )}
         </div>
         
