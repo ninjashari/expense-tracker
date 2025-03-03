@@ -1,9 +1,10 @@
 import { Metadata } from 'next';
 import { requireAuth } from '@/lib/session';
 import dbConnect from '@/lib/db/connection';
-import { Account, Transaction } from '@/lib/models';
+import { Account, Transaction, User } from '@/lib/models';
 import { TransactionType } from '@/lib/types';
 import DashboardSummary from '@/components/dashboard/DashboardSummary';
+import { formatCurrency } from '@/lib/utils/formatCurrency';
 
 export const metadata: Metadata = {
   title: 'Dashboard | Finance Tracker',
@@ -13,6 +14,10 @@ export const metadata: Metadata = {
 export default async function DashboardPage() {
   const user = await requireAuth();
   await dbConnect();
+  
+  // Get user data including default currency
+  const userData = await User.findById(user.id);
+  const defaultCurrency = userData?.defaultCurrency || 'INR';
   
   // Get accounts
   const accounts = await Account.find({ userId: user.id });
@@ -55,6 +60,7 @@ export default async function DashboardPage() {
         accountCount={accounts.length}
         income={income}
         expenses={expenses}
+        currency={defaultCurrency}
       />
       
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -75,7 +81,7 @@ export default async function DashboardPage() {
                     </div>
                     <div className={`text-${transaction.type === TransactionType.DEPOSIT ? 'green' : 'red'}-600 font-medium`}>
                       {transaction.type === TransactionType.DEPOSIT ? '+' : '-'}
-                      ${Math.abs(transaction.amount).toFixed(2)}
+                      {formatCurrency(Math.abs(transaction.amount), transaction.accountId.currency || defaultCurrency)}
                     </div>
                   </div>
                 </div>
@@ -98,7 +104,7 @@ export default async function DashboardPage() {
                       <p className="text-sm text-gray-500">{account.type}</p>
                     </div>
                     <div className="font-medium text-gray-900">
-                      ${account.balance.toFixed(2)}
+                      {formatCurrency(account.balance, account.currency || defaultCurrency)}
                     </div>
                   </div>
                 </div>

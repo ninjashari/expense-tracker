@@ -4,8 +4,9 @@ import { format } from 'date-fns';
 import { PlusIcon } from '@heroicons/react/24/outline';
 import { requireAuth } from '@/lib/session';
 import dbConnect from '@/lib/db/connection';
-import { Account } from '@/lib/models';
+import { Account, User } from '@/lib/models';
 import { Account as AccountType } from '@/lib/types';
+import { formatCurrency } from '@/lib/utils/formatCurrency';
 
 export const metadata: Metadata = {
   title: 'Accounts | Finance Tracker',
@@ -15,6 +16,10 @@ export const metadata: Metadata = {
 export default async function AccountsPage() {
   const user = await requireAuth();
   await dbConnect();
+  
+  // Get user data including default currency
+  const userData = await User.findById(user.id);
+  const defaultCurrency = userData?.defaultCurrency || 'INR';
   
   // Get accounts
   const accounts = await Account.find({ userId: user.id }).sort({ name: 1 });
@@ -62,7 +67,7 @@ export default async function AccountsPage() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div className="bg-gray-50 rounded-md p-4">
             <p className="text-sm text-gray-500">Total Balance</p>
-            <p className="text-2xl font-semibold text-gray-900">${totalBalance.toFixed(2)}</p>
+            <p className="text-2xl font-semibold text-gray-900">{formatCurrency(totalBalance, defaultCurrency)}</p>
           </div>
           <div className="bg-gray-50 rounded-md p-4">
             <p className="text-sm text-gray-500">Total Accounts</p>
@@ -115,11 +120,11 @@ export default async function AccountsPage() {
                       </div>
                       <div className="text-right">
                         <p className="text-lg font-medium text-gray-900">
-                          ${account.balance.toFixed(2)}
+                          {formatCurrency(account.balance, account.currency || defaultCurrency)}
                         </p>
                         {(account.type === 'credit' || account.type === 'loan') && account.creditLimit > 0 && (
                           <p className="text-sm text-gray-500">
-                            Limit: ${account.creditLimit.toFixed(2)}
+                            Limit: {formatCurrency(account.creditLimit, account.currency || defaultCurrency)}
                           </p>
                         )}
                       </div>

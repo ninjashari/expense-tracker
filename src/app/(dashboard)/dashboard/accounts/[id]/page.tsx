@@ -5,8 +5,9 @@ import { format } from 'date-fns';
 import { PencilIcon, ArrowLeftIcon } from '@heroicons/react/24/outline';
 import { requireAuth } from '@/lib/session';
 import dbConnect from '@/lib/db/connection';
-import { Account, Transaction } from '@/lib/models';
+import { Account, Transaction, User } from '@/lib/models';
 import { TransactionType } from '@/lib/types';
+import { formatCurrency } from '@/lib/utils/formatCurrency';
 
 export const metadata: Metadata = {
   title: 'Account Details | Finance Tracker',
@@ -21,6 +22,10 @@ export default async function AccountDetailPage({
   const user = await requireAuth();
   await dbConnect();
   
+  // Get user data including default currency
+  const userData = await User.findById(user.id);
+  const defaultCurrency = userData?.defaultCurrency || 'INR';
+  
   // Get account
   const account = await Account.findOne({
     _id: params.id,
@@ -30,6 +35,8 @@ export default async function AccountDetailPage({
   if (!account) {
     notFound();
   }
+  
+  const accountCurrency = account.currency || defaultCurrency;
   
   // Get recent transactions for this account
   const recentTransactions = await Transaction.find({
@@ -90,15 +97,20 @@ export default async function AccountDetailPage({
           <dl className="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
             <div>
               <dt className="text-sm font-medium text-gray-500">Current Balance</dt>
-              <dd className="mt-1 text-lg font-semibold text-gray-900">${account.balance.toFixed(2)}</dd>
+              <dd className="mt-1 text-lg font-semibold text-gray-900">{formatCurrency(account.balance, accountCurrency)}</dd>
             </div>
             
             {(account.type === 'credit' || account.type === 'loan') && account.creditLimit > 0 && (
               <div>
                 <dt className="text-sm font-medium text-gray-500">Credit Limit</dt>
-                <dd className="mt-1 text-lg font-semibold text-gray-900">${account.creditLimit.toFixed(2)}</dd>
+                <dd className="mt-1 text-lg font-semibold text-gray-900">{formatCurrency(account.creditLimit, accountCurrency)}</dd>
               </div>
             )}
+            
+            <div>
+              <dt className="text-sm font-medium text-gray-500">Currency</dt>
+              <dd className="mt-1 text-sm text-gray-900">{accountCurrency}</dd>
+            </div>
             
             <div>
               <dt className="text-sm font-medium text-gray-500">Start Date</dt>
@@ -151,11 +163,11 @@ export default async function AccountDetailPage({
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 mb-6">
             <div className="bg-green-50 rounded-md p-4">
               <p className="text-sm text-green-700">Income</p>
-              <p className="text-xl font-semibold text-green-900">+${income.toFixed(2)}</p>
+              <p className="text-xl font-semibold text-green-900">+{formatCurrency(income, accountCurrency)}</p>
             </div>
             <div className="bg-red-50 rounded-md p-4">
               <p className="text-sm text-red-700">Expenses</p>
-              <p className="text-xl font-semibold text-red-900">-${expenses.toFixed(2)}</p>
+              <p className="text-xl font-semibold text-red-900">-{formatCurrency(expenses, accountCurrency)}</p>
             </div>
           </div>
           
@@ -180,7 +192,7 @@ export default async function AccountDetailPage({
                         </p>
                       </div>
                       <div className={`text-${isIncoming ? 'green' : 'red'}-600 font-medium`}>
-                        {isIncoming ? '+' : '-'}${Math.abs(transaction.amount).toFixed(2)}
+                        {isIncoming ? '+' : '-'}{formatCurrency(Math.abs(transaction.amount), accountCurrency)}
                       </div>
                     </div>
                   </div>

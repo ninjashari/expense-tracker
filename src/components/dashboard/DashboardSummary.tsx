@@ -4,12 +4,14 @@ import {
   ArrowTrendingUpIcon,
   ArrowTrendingDownIcon,
 } from '@heroicons/react/24/outline';
+import { formatCurrency } from '@/lib/utils/formatCurrency';
 
 interface DashboardSummaryProps {
   totalBalance: number;
   accountCount: number;
   income: number;
   expenses: number;
+  currency: string;
 }
 
 export default function DashboardSummary({
@@ -17,11 +19,12 @@ export default function DashboardSummary({
   accountCount,
   income,
   expenses,
+  currency,
 }: DashboardSummaryProps) {
   const cards = [
     {
       title: 'Total Balance',
-      value: `$${totalBalance.toFixed(2)}`,
+      value: formatCurrency(totalBalance, currency),
       icon: BanknotesIcon,
       color: 'bg-blue-500',
     },
@@ -33,13 +36,13 @@ export default function DashboardSummary({
     },
     {
       title: 'Income',
-      value: `$${income.toFixed(2)}`,
+      value: formatCurrency(income, currency),
       icon: ArrowTrendingUpIcon,
       color: 'bg-green-500',
     },
     {
       title: 'Expenses',
-      value: `$${expenses.toFixed(2)}`,
+      value: formatCurrency(expenses, currency),
       icon: ArrowTrendingDownIcon,
       color: 'bg-red-500',
     },
