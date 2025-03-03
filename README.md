@@ -47,6 +47,18 @@ A comprehensive personal finance management application built with Next.js, Mong
    NEXTAUTH_SECRET=your_nextauth_secret
    ```
 
+   For MongoDB Atlas:
+   1. Create a free account at [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
+   2. Create a new cluster
+   3. Click "Connect" and select "Connect your application"
+   4. Copy the connection string and replace `<username>`, `<password>`, and `<dbname>` with your credentials
+   5. Your connection string should look like: `mongodb+srv://username:password@cluster.mongodb.net/finance-tracker?retryWrites=true&w=majority`
+
+   For local MongoDB:
+   1. Install MongoDB Community Edition on your machine
+   2. Start the MongoDB service
+   3. Use the connection string: `mongodb://localhost:27017/finance-tracker`
+
 4. Run the development server:
    ```bash
    npm run dev
