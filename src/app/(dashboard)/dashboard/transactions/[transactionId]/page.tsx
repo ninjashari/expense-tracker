@@ -1,9 +1,10 @@
 import { getServerSession } from 'next-auth';
 import { redirect, notFound } from 'next/navigation';
 import { authOptions } from '@/lib/auth';
-import dbConnect from '@/lib/db';
+import dbConnect from '@/lib/db/connection';
 import Transaction from '@/lib/models/Transaction';
 import TransactionDetails from '@/components/transactions/TransactionDetails';
+import { Transaction as TransactionType } from '@/lib/types';
 
 export default async function TransactionPage({
   params,
@@ -26,7 +27,12 @@ export default async function TransactionPage({
     .populate('categoryId')
     .populate('payeeId')
     .populate('toAccountId')
-    .lean();
+    .lean() as unknown as TransactionType & {
+      accountId: { _id: string; name: string; currency: string };
+      categoryId?: { _id: string; name: string };
+      payeeId?: { _id: string; name: string };
+      toAccountId?: { _id: string; name: string; currency: string };
+    };
 
   if (!transaction) {
     notFound();
