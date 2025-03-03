@@ -51,7 +51,9 @@ export default function Sidebar() {
         
         <div className="fixed inset-y-0 left-0 flex flex-col w-64 max-w-xs bg-white">
           <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
-            <h2 className="text-xl font-semibold text-gray-900">Finance Tracker</h2>
+            <h2 className="text-xl font-outfit font-bold text-violet-600 tracking-tight">
+              <span className="bg-gradient-to-r from-violet-600 to-violet-400 bg-clip-text text-transparent">Finance Tracker</span>
+            </h2>
             <button
               type="button"
               className="text-gray-500 hover:text-gray-900 focus:outline-none"
@@ -69,14 +71,14 @@ export default function Sidebar() {
                   <Link
                     href={item.href}
                     className={`group flex items-center px-2 py-2 text-base font-medium rounded-md ${
-                      pathname === item.href || pathname?.startsWith(`${item.href}/`)
+                      (item.href === '/dashboard' ? pathname === item.href : pathname?.startsWith(item.href))
                         ? 'bg-blue-100 text-blue-900'
                         : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                     }`}
                   >
                     <item.icon
                       className={`mr-3 h-6 w-6 flex-shrink-0 ${
-                        pathname === item.href || pathname?.startsWith(`${item.href}/`)
+                        (item.href === '/dashboard' ? pathname === item.href : pathname?.startsWith(item.href))
                           ? 'text-blue-600'
                           : 'text-gray-400 group-hover:text-gray-500'
                       }`}
@@ -96,7 +98,9 @@ export default function Sidebar() {
         <div className="flex flex-col w-64">
           <div className="flex flex-col flex-grow border-r border-gray-200 bg-white pt-5 pb-4 overflow-y-auto">
             <div className="flex items-center flex-shrink-0 px-4">
-              <h2 className="text-xl font-semibold text-gray-900">Finance Tracker</h2>
+              <h2 className="text-xl font-outfit font-bold text-violet-600 tracking-tight">
+                <span className="bg-gradient-to-r from-violet-600 to-violet-400 bg-clip-text text-transparent">Finance Tracker</span>
+              </h2>
             </div>
             <nav className="mt-5 flex-1 px-2 bg-white space-y-1">
               {navigation.map((item) => (
@@ -104,14 +108,14 @@ export default function Sidebar() {
                   key={item.name}
                   href={item.href}
                   className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md ${
-                    pathname === item.href || pathname?.startsWith(`${item.href}/`)
+                    (item.href === '/dashboard' ? pathname === item.href : pathname?.startsWith(item.href))
                       ? 'bg-blue-100 text-blue-900'
                       : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                   }`}
                 >
                   <item.icon
                     className={`mr-3 h-5 w-5 flex-shrink-0 ${
-                      pathname === item.href || pathname?.startsWith(`${item.href}/`)
+                      (item.href === '/dashboard' ? pathname === item.href : pathname?.startsWith(item.href))
                         ? 'text-blue-600'
                         : 'text-gray-400 group-hover:text-gray-500'
                     }`}

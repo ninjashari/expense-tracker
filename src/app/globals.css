@@ -3,22 +3,62 @@
 @theme {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-outfit);
 }
 
 :root {
   --background: #ffffff;
   --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --primary: #7c3aed;
+  --primary-foreground: #ffffff;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Override Tailwind classes for violet theme */
+.bg-blue-600 {
+  background-color: #7c3aed !important;
+}
+
+.hover\:bg-blue-700:hover {
+  background-color: #6d28d9 !important;
+}
+
+.text-blue-600 {
+  color: #7c3aed !important;
+}
+
+.ring-blue-600 {
+  --tw-ring-color: #7c3aed !important;
+}
+
+.focus\:ring-blue-500:focus {
+  --tw-ring-color: #8b5cf6 !important;
+}
+
+.bg-blue-100 {
+  background-color: #ede9fe !important;
+}
+
+.text-blue-900 {
+  color: #5b21b6 !important;
+}
+
+.hover\:bg-blue-500:hover {
+  background-color: #8b5cf6 !important;
+}
+
+/* Remove all dark mode styles */
+.dark\:from-gray-900,
+.dark\:to-gray-800,
+.dark\:text-white,
+.dark\:text-blue-400,
+.dark\:text-gray-300,
+.dark\:bg-blue-900,
+.dark\:text-gray-400 {
+  display: none !important;
 }

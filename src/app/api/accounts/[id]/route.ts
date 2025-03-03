@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -49,71 +49,74 @@ export async function GET(
   }
 }
 
-// PATCH update a specific account
-export async function PATCH(
-  request: NextRequest,
+// PUT update a specific account
+export async function PUT(
+  request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
     const session = await getServerSession(authOptions);
     
-    if (!session?.user?.id) {
-      return errorResponse('Unauthorized', 401);
+    if (!session?.user) {
+      return new NextResponse('Unauthorized', { status: 401 });
     }
-    
-    await dbConnect();
     
     const body = await request.json();
     
-    // Validate request body
-    const validatedData = updateAccountSchema.parse(body);
+    await dbConnect();
     
-    // Find and update the account
-    const updatedAccount = await Account.findOneAndUpdate(
-      { _id: params.id, userId: session.user.id },
-      { $set: validatedData },
-      { new: true, runValidators: true }
+    const account = await Account.findOneAndUpdate(
+      {
+        _id: params.id,
+        userId: session.user.id,
+      },
+      {
+        name: body.name,
+        type: body.type,
+        balance: body.balance,
+        currency: body.currency,
+        description: body.description,
+      },
+      { new: true }
     );
     
-    if (!updatedAccount) {
-      return errorResponse('Account not found', 404);
+    if (!account) {
+      return new NextResponse('Account not found', { status: 404 });
     }
     
-    return successResponse({ account: updatedAccount });
+    return NextResponse.json(account);
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return errorResponse(error.errors[0].message, 400);
-    }
-    
-    return handleApiError(error);
+    console.error('[ACCOUNTS_PUT]', error);
+    return new NextResponse('Internal error', { status: 500 });
   }
 }
 
 // DELETE a specific account
 export async function DELETE(
-  request: NextRequest,
+  request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
     const session = await getServerSession(authOptions);
     
-    if (!session?.user?.id) {
-      return errorResponse('Unauthorized', 401);
+    if (!session?.user) {
+      return new NextResponse('Unauthorized', { status: 401 });
     }
     
     await dbConnect();
     
-    const deletedAccount = await Account.findOneAndDelete({
+    const account = await Account.findOneAndDelete({
       _id: params.id,
       userId: session.user.id,
     });
     
-    if (!deletedAccount) {
-      return errorResponse('Account not found', 404);
+    if (!account) {
+      return new NextResponse('Account not found', { status: 404 });
     }
     
-    return successResponse({ message: 'Account deleted successfully' });
+    return new NextResponse(null, { status: 204 });
   } catch (error) {
-    return handleApiError(error);
+    console.error('[ACCOUNTS_DELETE]', error);
+    return new NextResponse('Internal error', { status: 500 });
   }
 } 

@@ -7,6 +7,7 @@ import { Transaction, Account } from '@/lib/models';
 import { successResponse, errorResponse, handleApiError } from '@/lib/api-utils';
 import { TransactionType, TransactionStatus } from '@/lib/types';
 import { Types } from 'mongoose';
+import { NextResponse } from 'next/server';
 
 // Validation schema for creating transactions
 const transactionSchema = z.object({
@@ -84,51 +85,92 @@ export async function GET(request: NextRequest) {
 }
 
 // POST create a new transaction
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
-    
     if (!session?.user?.id) {
-      return errorResponse('Unauthorized', 401);
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    
+
     await dbConnect();
-    
     const body = await request.json();
-    
-    // Validate request body
-    const validatedData = transactionSchema.parse(body);
-    
-    // Additional validation for transfer transactions
-    if (validatedData.type === TransactionType.TRANSFER && !validatedData.toAccountId) {
-      return errorResponse('To Account is required for transfer transactions', 400);
+
+    // Validate required fields
+    if (!body.accountId || !body.amount || !body.type || !body.date) {
+      return NextResponse.json(
+        { error: 'Missing required fields' },
+        { status: 400 }
+      );
     }
-    
-    // Create new transaction
-    const newTransaction = await Transaction.create({
-      ...validatedData,
+
+    // Validate account ownership
+    const account = await Account.findOne({
+      _id: body.accountId,
       userId: session.user.id,
     });
-    
-    // Update account balances
-    await updateAccountBalances(
-      validatedData.type,
-      validatedData.accountId,
-      validatedData.toAccountId,
-      validatedData.amount,
-      session.user.id
-    );
-    
-    // Populate references
-    await newTransaction.populate(['accountId', 'categoryId', 'payeeId', 'toAccountId']);
-    
-    return successResponse({ transaction: newTransaction }, 201);
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return errorResponse(error.errors[0].message, 400);
+
+    if (!account) {
+      return NextResponse.json(
+        { error: 'Account not found' },
+        { status: 404 }
+      );
     }
+
+    // For transfers, validate target account
+    if (body.type === TransactionType.TRANSFER) {
+      if (!body.toAccountId) {
+        return NextResponse.json(
+          { error: 'Target account is required for transfers' },
+          { status: 400 }
+        );
+      }
+
+      const toAccount = await Account.findOne({
+        _id: body.toAccountId,
+        userId: session.user.id,
+      });
+
+      if (!toAccount) {
+        return NextResponse.json(
+          { error: 'Target account not found' },
+          { status: 404 }
+        );
+      }
+    }
+
+    // Create transaction
+    const transaction = await Transaction.create({
+      ...body,
+      userId: session.user.id,
+    });
+
+    // Update account balances
+    const amount = Number(body.amount);
     
-    return handleApiError(error);
+    if (body.type === TransactionType.TRANSFER) {
+      // For transfers, deduct from source account and add to target account
+      await Account.findByIdAndUpdate(body.accountId, {
+        $inc: { balance: -amount },
+      });
+      
+      await Account.findByIdAndUpdate(body.toAccountId, {
+        $inc: { balance: amount },
+      });
+    } else {
+      // For deposits and withdrawals, update single account
+      const balanceChange = body.type === TransactionType.DEPOSIT ? amount : -amount;
+      await Account.findByIdAndUpdate(body.accountId, {
+        $inc: { balance: balanceChange },
+      });
+    }
+
+    return NextResponse.json(transaction);
+  } catch (error) {
+    console.error('Error creating transaction:', error);
+    return NextResponse.json(
+      { error: 'Failed to create transaction' },
+      { status: 500 }
+    );
   }
 }
 

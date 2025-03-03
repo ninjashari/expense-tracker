@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -41,39 +41,30 @@ export async function GET() {
 }
 
 // POST create a new account
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
     
-    if (!session?.user?.id) {
-      return errorResponse('Unauthorized', 401);
+    if (!session?.user) {
+      return new NextResponse('Unauthorized', { status: 401 });
     }
-    
-    await dbConnect();
     
     const body = await request.json();
     
-    // Validate request body
-    const validatedData = accountSchema.parse(body);
+    await dbConnect();
     
-    // If currency is not provided, use user's default currency
-    if (!validatedData.currency) {
-      const user = await User.findById(session.user.id);
-      validatedData.currency = user?.defaultCurrency || DEFAULT_CURRENCY;
-    }
-    
-    // Create new account
-    const newAccount = await Account.create({
-      ...validatedData,
+    const account = await Account.create({
       userId: session.user.id,
+      name: body.name,
+      type: body.type,
+      balance: body.balance,
+      currency: body.currency,
+      description: body.description,
     });
     
-    return successResponse({ account: newAccount }, 201);
+    return NextResponse.json(account);
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return errorResponse(error.errors[0].message, 400);
-    }
-    
-    return handleApiError(error);
+    console.error('[ACCOUNTS_POST]', error);
+    return new NextResponse('Internal error', { status: 500 });
   }
 } 
