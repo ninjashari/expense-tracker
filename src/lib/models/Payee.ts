@@ -8,6 +8,10 @@ const PayeeSchema = new Schema<Payee>(
       required: [true, 'Please provide a payee name'],
       maxlength: [60, 'Payee name cannot be more than 60 characters'],
     },
+    description: {
+      type: String,
+      maxlength: [1000, 'Description cannot be more than 1000 characters'],
+    },
     userId: {
       type: Schema.Types.ObjectId,
       ref: 'User',

@@ -19,9 +19,9 @@ export const DEFAULT_CURRENCY = 'INR';
 
 // Base type with timestamps
 export interface BaseDocument {
-  _id?: Types.ObjectId;
-  createdAt?: Date;
-  updatedAt?: Date;
+  _id: Types.ObjectId;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 // User model
@@ -53,12 +53,14 @@ export interface Account extends BaseDocument {
 // Category model
 export interface Category extends BaseDocument {
   name: string;
+  description?: string;
   userId: Types.ObjectId;
 }
 
 // Payee model
 export interface Payee extends BaseDocument {
   name: string;
+  description?: string;
   userId: Types.ObjectId;
 }
 

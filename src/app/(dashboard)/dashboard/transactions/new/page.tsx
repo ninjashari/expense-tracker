@@ -7,7 +7,7 @@ import { Account, Category, Payee } from '@/lib/models';
 import TransactionForm from '@/components/forms/TransactionForm';
 
 export const metadata: Metadata = {
-  title: 'New Transaction | Finance Tracker',
+  title: 'Create New Transaction | Finance Tracker',
   description: 'Create a new financial transaction',
 };
 

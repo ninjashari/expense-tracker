@@ -5,13 +5,13 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
 
-interface CategoryFormData {
+interface PayeeFormData {
   name: string;
   description?: string;
 }
 
-interface CategoryFormProps {
-  categoryId?: string;
+interface PayeeFormProps {
+  payeeId?: string;
   initialData?: {
     name: string;
     description?: string;
@@ -19,7 +19,7 @@ interface CategoryFormProps {
   onSuccess?: () => void;
 }
 
-export default function CategoryForm({ categoryId, initialData, onSuccess }: CategoryFormProps) {
+export default function PayeeForm({ payeeId, initialData, onSuccess }: PayeeFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -27,19 +27,19 @@ export default function CategoryForm({ categoryId, initialData, onSuccess }: Cat
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<CategoryFormData>({
+  } = useForm<PayeeFormData>({
     defaultValues: initialData || {
       name: '',
       description: '',
     },
   });
   
-  const onSubmit = async (data: CategoryFormData) => {
+  const onSubmit = async (data: PayeeFormData) => {
     try {
       setIsSubmitting(true);
       
-      const response = await fetch(categoryId ? `/api/categories/${categoryId}` : '/api/categories', {
-        method: categoryId ? 'PUT' : 'POST',
+      const response = await fetch(payeeId ? `/api/payees/${payeeId}` : '/api/payees', {
+        method: payeeId ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -47,44 +47,44 @@ export default function CategoryForm({ categoryId, initialData, onSuccess }: Cat
       });
       
       if (!response.ok) {
-        throw new Error('Failed to save category');
+        throw new Error('Failed to save payee');
       }
       
-      toast.success(categoryId ? 'Category updated successfully' : 'Category created successfully');
+      toast.success(payeeId ? 'Payee updated successfully' : 'Payee created successfully');
       router.refresh();
       onSuccess?.();
     } catch (error) {
-      console.error('Error saving category:', error);
-      toast.error('Failed to save category');
+      console.error('Error saving payee:', error);
+      toast.error('Failed to save payee');
     } finally {
       setIsSubmitting(false);
     }
   };
   
   const handleDelete = async () => {
-    if (!categoryId) return;
+    if (!payeeId) return;
     
-    if (!confirm('Are you sure you want to delete this category? This action cannot be undone.')) {
+    if (!confirm('Are you sure you want to delete this payee? This action cannot be undone.')) {
       return;
     }
     
     try {
       setIsSubmitting(true);
       
-      const response = await fetch(`/api/categories/${categoryId}`, {
+      const response = await fetch(`/api/payees/${payeeId}`, {
         method: 'DELETE',
       });
       
       if (!response.ok) {
-        throw new Error('Failed to delete category');
+        throw new Error('Failed to delete payee');
       }
       
-      toast.success('Category deleted successfully');
-      router.push('/dashboard/categories');
+      toast.success('Payee deleted successfully');
+      router.push('/dashboard/payees');
       router.refresh();
     } catch (error) {
-      console.error('Error deleting category:', error);
-      toast.error('Failed to delete category');
+      console.error('Error deleting payee:', error);
+      toast.error('Failed to delete payee');
     } finally {
       setIsSubmitting(false);
     }
@@ -124,7 +124,7 @@ export default function CategoryForm({ categoryId, initialData, onSuccess }: Cat
       </div>
       
       <div className="flex justify-end gap-4">
-        {categoryId && (
+        {payeeId && (
           <button
             type="button"
             onClick={handleDelete}
@@ -140,7 +140,7 @@ export default function CategoryForm({ categoryId, initialData, onSuccess }: Cat
           disabled={isSubmitting}
           className="h-10 w-full flex items-center justify-center rounded-md border border-transparent bg-violet-600 px-4 text-sm font-medium text-white shadow-sm hover:bg-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 disabled:opacity-50"
         >
-          {isSubmitting ? 'Saving...' : categoryId ? 'Update Category' : 'Create Category'}
+          {isSubmitting ? 'Saving...' : payeeId ? 'Update Payee' : 'Create Payee'}
         </button>
       </div>
     </form>

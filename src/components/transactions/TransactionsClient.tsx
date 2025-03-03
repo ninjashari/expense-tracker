@@ -40,10 +40,10 @@ export default function TransactionsClient({
         <h1 className="text-2xl font-bold text-gray-900">Transactions</h1>
         <button
           onClick={() => setIsModalOpen(true)}
-          className="inline-flex items-center rounded-md bg-violet-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-violet-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600"
+          className="inline-flex items-center rounded-md border border-transparent bg-violet-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2"
         >
           <PlusIcon className="-ml-0.5 mr-1.5 h-5 w-5" aria-hidden="true" />
-          New Transaction
+          Add Transaction
         </button>
       </div>
       

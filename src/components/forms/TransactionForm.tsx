@@ -197,6 +197,19 @@ export default function TransactionForm({
             type="number"
             step="0.01"
             min="0.01"
+            onKeyDown={(e) => {
+              // Allow only numbers, backspace, delete, tab, enter, decimal point, and arrow keys
+              if (
+                !/[\d\.]/.test(e.key) && 
+                !['Backspace', 'Delete', 'Tab', 'Enter', 'ArrowLeft', 'ArrowRight'].includes(e.key)
+              ) {
+                e.preventDefault();
+              }
+              // Prevent multiple decimal points
+              if (e.key === '.' && (e.target as HTMLInputElement).value.includes('.')) {
+                e.preventDefault();
+              }
+            }}
             {...register('amount')}
             className="mt-1 block w-full rounded-md border-0 py-2 px-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm"
           />
@@ -330,16 +343,9 @@ export default function TransactionForm({
       
       <div className="flex justify-end space-x-3">
         <button
-          type="button"
-          onClick={() => router.back()}
-          className="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
-        >
-          Cancel
-        </button>
-        <button
           type="submit"
           disabled={isLoading}
-          className="rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:opacity-50"
+          className="h-10 w-full flex items-center justify-center rounded-md border border-transparent bg-violet-600 px-4 text-sm font-medium text-white shadow-sm hover:bg-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 disabled:opacity-50"
         >
           {isLoading ? 'Saving...' : isEditMode ? 'Update Transaction' : 'Create Transaction'}
         </button>
