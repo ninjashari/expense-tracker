@@ -53,7 +53,7 @@ const AccountSchema = new Schema<Account>(
       maxlength: [500, 'Notes cannot be more than 500 characters'],
     },
     userId: {
-      type: Schema.Types.ObjectId,
+      type: String,
       ref: 'User',
       required: [true, 'Please provide a user ID'],
     },

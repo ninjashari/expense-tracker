@@ -32,40 +32,45 @@ const updateTransactionSchema = z.object({
 // GET a specific transaction
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { transactionId: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.id) {
-      return errorResponse('Unauthorized', 401);
-    }
-    
     await dbConnect();
-    
-    const transaction = await Transaction.findOne({
-      _id: params.id,
-      userId: session.user.id,
-    })
-      .populate('accountId')
-      .populate('categoryId')
-      .populate('payeeId')
-      .populate('toAccountId');
-    
-    if (!transaction) {
-      return errorResponse('Transaction not found', 404);
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
     }
-    
-    return successResponse({ transaction });
+
+    const transaction = await Transaction.findOne({
+      _id: params.transactionId,
+      userId: session.user.id,
+    }).lean();
+
+    if (!transaction) {
+      return NextResponse.json(
+        { error: "Transaction not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(transaction);
   } catch (error) {
-    return handleApiError(error);
+    console.error("Error fetching transaction:", error);
+    return NextResponse.json(
+      { error: "Error fetching transaction" },
+      { status: 500 }
+    );
   }
 }
 
 // PATCH update a transaction
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { transactionId: string } }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -78,7 +83,7 @@ export async function PATCH(
     
     // Find the existing transaction
     const existingTransaction = await Transaction.findOne({
-      _id: params.id,
+      _id: params.transactionId,
       userId: session.user.id,
     });
     
@@ -107,7 +112,7 @@ export async function PATCH(
     
     // Update the transaction
     const updatedTransaction = await Transaction.findByIdAndUpdate(
-      params.id,
+      params.transactionId,
       { ...validatedData },
       { new: true, runValidators: true }
     )
@@ -138,27 +143,31 @@ export async function PATCH(
 // DELETE a transaction
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { transactionId: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.id) {
-      return errorResponse('Unauthorized', 401);
-    }
-    
     await dbConnect();
-    
-    // Find the transaction
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
     const transaction = await Transaction.findOne({
-      _id: params.id,
+      _id: params.transactionId,
       userId: session.user.id,
     });
-    
+
     if (!transaction) {
-      return errorResponse('Transaction not found', 404);
+      return NextResponse.json(
+        { error: "Transaction not found" },
+        { status: 404 }
+      );
     }
-    
+
     // Revert account balances
     await revertAccountBalances(
       transaction.type,
@@ -169,11 +178,15 @@ export async function DELETE(
     );
     
     // Delete the transaction
-    await Transaction.findByIdAndDelete(params.id);
+    await Transaction.findByIdAndDelete(params.transactionId);
     
-    return successResponse({ message: 'Transaction deleted successfully' });
+    return NextResponse.json({ message: "Transaction deleted successfully" });
   } catch (error) {
-    return handleApiError(error);
+    console.error("Error deleting transaction:", error);
+    return NextResponse.json(
+      { error: "Error deleting transaction" },
+      { status: 500 }
+    );
   }
 }
 
@@ -272,177 +285,42 @@ async function revertAccountBalances(
 }
 
 export async function PUT(
-  request: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  { params }: { params: { transactionId: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     await dbConnect();
-    const body = await request.json();
-
-    // Find existing transaction
-    const existingTransaction = await Transaction.findOne({
-      _id: params.id,
-      userId: session.user.id,
-    });
-
-    if (!existingTransaction) {
-      return NextResponse.json(
-        { error: 'Transaction not found' },
-        { status: 404 }
-      );
-    }
-
-    // Validate required fields
-    if (!body.accountId || !body.amount || !body.type || !body.date) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      );
-    }
-
-    // Validate account ownership
-    const account = await Account.findOne({
-      _id: body.accountId,
-      userId: session.user.id,
-    });
-
-    if (!account) {
-      return NextResponse.json(
-        { error: 'Account not found' },
-        { status: 404 }
-      );
-    }
-
-    // For transfers, validate target account
-    if (body.type === TransactionType.TRANSFER) {
-      if (!body.toAccountId) {
-        return NextResponse.json(
-          { error: 'Target account is required for transfers' },
-          { status: 400 }
-        );
-      }
-
-      const toAccount = await Account.findOne({
-        _id: body.toAccountId,
-        userId: session.user.id,
-      });
-
-      if (!toAccount) {
-        return NextResponse.json(
-          { error: 'Target account not found' },
-          { status: 404 }
-        );
-      }
-    }
-
-    // Revert previous transaction's effect on account balances
-    const oldAmount = Number(existingTransaction.amount);
-    if (existingTransaction.type === TransactionType.TRANSFER) {
-      await Account.findByIdAndUpdate(existingTransaction.accountId, {
-        $inc: { balance: oldAmount },
-      });
-      await Account.findByIdAndUpdate(existingTransaction.toAccountId, {
-        $inc: { balance: -oldAmount },
-      });
-    } else {
-      const oldBalanceChange =
-        existingTransaction.type === TransactionType.DEPOSIT
-          ? -oldAmount
-          : oldAmount;
-      await Account.findByIdAndUpdate(existingTransaction.accountId, {
-        $inc: { balance: oldBalanceChange },
-      });
-    }
-
-    // Apply new transaction's effect on account balances
-    const newAmount = Number(body.amount);
-    if (body.type === TransactionType.TRANSFER) {
-      await Account.findByIdAndUpdate(body.accountId, {
-        $inc: { balance: -newAmount },
-      });
-      await Account.findByIdAndUpdate(body.toAccountId, {
-        $inc: { balance: newAmount },
-      });
-    } else {
-      const newBalanceChange =
-        body.type === TransactionType.DEPOSIT ? newAmount : -newAmount;
-      await Account.findByIdAndUpdate(body.accountId, {
-        $inc: { balance: newBalanceChange },
-      });
-    }
-
-    // Update transaction
-    const transaction = await Transaction.findByIdAndUpdate(
-      params.id,
-      { ...body },
-      { new: true }
-    );
-
-    return NextResponse.json(transaction);
-  } catch (error) {
-    console.error('Error updating transaction:', error);
-    return NextResponse.json(
-      { error: 'Failed to update transaction' },
-      { status: 500 }
-    );
-  }
-}
-
-export async function DELETE(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
-  try {
     const session = await getServerSession(authOptions);
+
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
     }
 
-    await dbConnect();
-
-    // Find transaction
+    const data = await request.json();
     const transaction = await Transaction.findOne({
-      _id: params.id,
+      _id: params.transactionId,
       userId: session.user.id,
     });
 
     if (!transaction) {
       return NextResponse.json(
-        { error: 'Transaction not found' },
+        { error: "Transaction not found" },
         { status: 404 }
       );
     }
 
-    // Revert transaction's effect on account balances
-    const amount = Number(transaction.amount);
-    if (transaction.type === TransactionType.TRANSFER) {
-      await Account.findByIdAndUpdate(transaction.accountId, {
-        $inc: { balance: amount },
-      });
-      await Account.findByIdAndUpdate(transaction.toAccountId, {
-        $inc: { balance: -amount },
-      });
-    } else {
-      const balanceChange =
-        transaction.type === TransactionType.DEPOSIT ? -amount : amount;
-      await Account.findByIdAndUpdate(transaction.accountId, {
-        $inc: { balance: balanceChange },
-      });
-    }
+    // Update transaction fields
+    Object.assign(transaction, data);
+    await transaction.save();
 
-    // Delete transaction
-    await Transaction.findByIdAndDelete(params.id);
-
-    return new NextResponse(null, { status: 204 });
+    return NextResponse.json(transaction);
   } catch (error) {
-    console.error('Error deleting transaction:', error);
+    console.error("Error updating transaction:", error);
     return NextResponse.json(
-      { error: 'Failed to delete transaction' },
+      { error: "Error updating transaction" },
       { status: 500 }
     );
   }
