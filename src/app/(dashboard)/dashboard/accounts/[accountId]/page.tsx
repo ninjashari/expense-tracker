@@ -1,7 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { redirect, notFound } from 'next/navigation';
 import { authOptions } from '@/lib/auth';
-import dbConnect from '@/lib/db';
+import dbConnect from '@/lib/db/connection';
 import Account from '@/lib/models/Account';
 import AccountDetails from '@/components/accounts/AccountDetails';
 
