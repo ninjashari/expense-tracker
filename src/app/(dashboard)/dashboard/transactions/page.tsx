@@ -3,11 +3,18 @@ import { requireAuth } from '@/lib/session';
 import dbConnect from '@/lib/db/connection';
 import { Transaction, Account, User, Category, Payee } from '@/lib/models';
 import TransactionsClient from '@/components/transactions/TransactionsClient';
+import { Types } from 'mongoose';
 
 export const metadata: Metadata = {
   title: 'Transactions | Finance Tracker',
   description: 'Manage your financial transactions',
 };
+
+// Define interface for the query
+interface TransactionQuery {
+  userId: string;
+  $or?: Array<{ accountId: string } | { toAccountId: string }>;
+}
 
 export default async function TransactionsPage({
   searchParams,
@@ -28,7 +35,7 @@ export default async function TransactionsPage({
   const skip = (page - 1) * limit;
   
   // Build query
-  const query: any = { userId: user.id };
+  const query: TransactionQuery = { userId: user.id };
   
   if (accountId) {
     query.$or = [

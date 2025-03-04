@@ -18,15 +18,15 @@ export default async function NewTransactionPage({
 }) {
   const user = await requireAuth();
   await dbConnect();
-  
+
   // Get accounts, categories, and payees
   const accounts = await Account.find({ userId: user.id, isActive: true }).sort({ name: 1 });
   const categories = await Category.find({ userId: user.id }).sort({ name: 1 });
   const payees = await Payee.find({ userId: user.id }).sort({ name: 1 });
-  
+
   // Check if an account ID was provided in the query params
-  const accountId = typeof searchParams.accountId === 'string' ? searchParams.accountId : undefined;
-  
+  // const accountId = typeof searchParams.accountId === 'string' ? searchParams.accountId : undefined;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center">
@@ -39,9 +39,9 @@ export default async function NewTransactionPage({
         </Link>
         <h1 className="text-2xl font-bold text-gray-900">New Transaction</h1>
       </div>
-      
+
       <div className="bg-white shadow rounded-lg p-6">
-        <TransactionForm 
+        <TransactionForm
           accounts={accounts.map(account => ({
             _id: account._id.toString(),
             name: account.name,
